@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculadora Profesional de Préstamos · Sistema Francés</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<style>
+/* 
+   TOKENS DE DISEÑO
+   Concepto: "Libro Mayor" (Ledger) — estética de banca dominicana,
+   tarjetas tipo recibo/comprobante con borde perforado, tipografía
+   serif para cifras (peso financiero) + sans para UI.
+    */
+:root{
+  --bg:#F3F1EC;
+  --bg-soft:#FBFAF7;
+  --surface:#FFFFFF;
+  --surface-2:#F7F5EF;
+  --border:#E4DFD2;
+  --text:#26241D;
+  --text-dim:#635C4C;
+  --text-faint:#9A927C;
+  --gold:#A9782E;
+  --gold-soft:#8C6423;
+  --emerald:#1F8F63;
+  --rose:#B94A41;
+  --blue:#2F5FE0;
+  --shadow: 0 20px 40px -24px rgba(60,50,20,0.25);
+  --radius: 16px;
+  --font-display: Arial, Helvetica, sans-serif;
+  --font-body: Arial, Helvetica, sans-serif;
+  --font-mono: Arial, Helvetica, sans-serif;
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:
+    radial-gradient(1200px 600px at 15% -10%, rgba(204,159,69,0.08), transparent 60%),
+    var(--bg);
+  color:var(--text);
+  font-family:var(--font-body);
+  min-height:100vh;
+  transition:background .35s ease, color .35s ease;
+  -webkit-font-smoothing:antialiased;
+}
+
+.wrap{max-width:1040px; margin:0 auto; padding:28px 20px 80px;}
+
+/* ---------- HEADER ---------- */
+header.app-header{
+  display:flex; align-items:flex-start; justify-content:space-between;
+  gap:16px; margin-bottom:28px; flex-wrap:wrap;
+}
+.title-block .eyebrow{
+  font-size:11px; letter-spacing:.16em; text-transform:uppercase;
+  color:var(--gold); font-weight:600; margin:0 0 8px;
+}
+.title-block h1{
+  font-family:var(--font-display); font-size:clamp(26px,4vw,38px);
+  margin:0; font-weight:600; letter-spacing:-.01em; line-height:1.15;
+}
+.title-block p.subtitle{
+  margin:8px 0 0; color:var(--text-dim); font-size:15px; font-style:italic;
+  font-family:var(--font-display);
+}
+.header-actions{display:flex; align-items:center; gap:10px;}
+.datetime-chip{
+  font-size:12px; color:var(--text-dim); background:var(--surface);
+  border:1px solid var(--border); border-radius:999px; padding:7px 14px;
+  font-family:var(--font-mono); white-space:nowrap;
+}
+
+/* ---------- CARDS ---------- */
+.card{
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius); box-shadow:var(--shadow);
+  padding:26px; margin-bottom:24px;
+}
+.card h2{
+  font-family:var(--font-display); font-weight:600; font-size:19px;
+  margin:0 0 20px; display:flex; align-items:center; gap:10px;
+}
+.card h2 .num{
+  font-family:var(--font-mono); font-size:12px; color:var(--gold);
+  border:1px solid var(--gold); border-radius:6px; padding:2px 7px;
+}
+
+/* ---------- FORM ---------- */
+.grid-form{
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr));
+  gap:18px 20px;
+}
+.field{display:flex; flex-direction:column; gap:7px;}
+.field label{
+  font-size:12.5px; color:var(--text-dim); font-weight:600;
+  letter-spacing:.02em; display:flex; justify-content:space-between;
+}
+.field label .hint{color:var(--text-faint); font-weight:400; font-style:italic;}
+.field input, .field select{
+  background:var(--surface-2); border:1px solid var(--border); color:var(--text);
+  border-radius:10px; padding:11px 13px; font-size:14.5px; font-family:var(--font-body);
+  outline:none; transition:border-color .2s ease, box-shadow .2s ease;
+}
+.field input:focus, .field select:focus{
+  border-color:var(--gold); box-shadow:0 0 0 3px rgba(204,159,69,0.18);
+}
+.field.money input{font-family:var(--font-mono); font-size:15px;}
+
+.error-box{
+  display:none; background:rgba(226,104,95,0.12); border:1px solid var(--rose);
+  color:var(--rose); border-radius:10px; padding:12px 16px; font-size:13.5px;
+  margin-top:18px; align-items:center; gap:10px;
+}
+.error-box.show{display:flex;}
+
+/* ---------- BUTTONS ---------- */
+.button-row{display:flex; gap:12px; flex-wrap:wrap; margin-top:22px;}
+.btn{
+  border:none; cursor:pointer; padding:13px 22px; border-radius:11px;
+  font-size:14.5px; font-weight:600; font-family:var(--font-body);
+  display:flex; align-items:center; gap:8px; transition:transform .15s ease, filter .15s ease;
+  letter-spacing:.01em;
+}
+.btn:hover{transform:translateY(-2px); filter:brightness(1.08);}
+.btn:active{transform:translateY(0);}
+.btn-primary{background:linear-gradient(135deg,#2F5FE0,#1E42B0); color:#fff; box-shadow:0 10px 24px -10px rgba(47,95,224,.6);}
+.btn-danger{background:transparent; color:var(--rose); border:1.5px solid var(--rose);}
+.btn-success{background:linear-gradient(135deg,#31B383,#1F8F63); color:#fff; box-shadow:0 10px 24px -10px rgba(49,179,131,.5);}
+.btn:disabled{opacity:.45; cursor:not-allowed; transform:none;}
+
+/* ---------- RESULTS ---------- */
+#resultsSection{display:none;}
+#resultsSection.show{display:block; animation:riseIn .5s ease both;}
+@keyframes riseIn{
+  from{opacity:0; transform:translateY(14px);}
+  to{opacity:1; transform:translateY(0);}
+}
+
+.kpi-grid{
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr));
+  gap:18px; margin-bottom:22px;
+}
+.kpi{
+  background:var(--surface-2); border:1px solid var(--border); border-radius:14px;
+  padding:20px; position:relative; overflow:hidden;
+}
+.kpi .k-label{font-size:11.5px; text-transform:uppercase; letter-spacing:.08em; color:var(--text-dim); font-weight:700;}
+.kpi .k-value{font-family:var(--font-display); font-size:24px; margin-top:8px; font-weight:600;}
+.kpi.stub{
+  background:linear-gradient(160deg, rgba(204,159,69,.14), var(--surface-2));
+  border-color:var(--gold);
+}
+.kpi.stub .k-value{color:var(--gold-soft); font-size:28px;}
+/* perforación estilo recibo en el borde superior del stub */
+.kpi.stub::before{
+  content:"";
+  position:absolute; top:0; left:0; right:0; height:10px;
+  background-image: radial-gradient(circle at 10px 0, transparent 5px, var(--surface) 5.5px);
+  background-size:20px 10px; background-repeat:repeat-x;
+  background-position: -4px 0;
+}
+.kpi .k-value.emerald{color:var(--emerald);}
+.kpi .k-value.rose{color:var(--rose);}
+.kpi .k-value.azul{color:var(--blue);}
+
+.meta-strip{
+  display:flex; gap:24px; flex-wrap:wrap; padding:16px 4px 4px;
+  border-top:1px dashed var(--border); margin-top:4px;
+}
+.meta-strip .m-item{font-size:13px; color:var(--text-dim);}
+.meta-strip .m-item b{color:var(--text); font-family:var(--font-mono); font-weight:600;}
+
+/* ---------- TABLE ---------- */
+.table-scroll{
+  overflow-x:auto; border-radius:12px; border:1px solid var(--border);
+  -webkit-overflow-scrolling:touch;
+}
+.table-scroll::-webkit-scrollbar{height:8px;}
+.table-scroll::-webkit-scrollbar-thumb{background:var(--gold); border-radius:8px;}
+.table-scroll::-webkit-scrollbar-track{background:var(--surface-2);}
+
+table.amort{
+  width:100%; border-collapse:collapse; min-width:640px; font-size:13.5px;
+}
+table.amort thead th{
+  position:sticky; top:0; background:var(--surface-2); color:var(--text-dim);
+  text-transform:uppercase; font-size:11px; letter-spacing:.06em; font-weight:700;
+  padding:12px 14px; text-align:right; border-bottom:1px solid var(--border);
+}
+table.amort thead th:first-child, table.amort thead th:nth-child(2){text-align:left;}
+table.amort td{
+  padding:10px 14px; text-align:right; border-bottom:1px solid var(--border);
+  font-family:var(--font-mono); white-space:nowrap;
+}
+table.amort td:first-child, table.amort td:nth-child(2){text-align:left; font-family:var(--font-body);}
+table.amort tbody tr:hover{background:rgba(204,159,69,0.06);}
+table.amort tbody tr:last-child td{font-weight:700; color:var(--emerald);}
+
+.section-label{font-size:11px; text-transform:uppercase; letter-spacing:.1em; color:var(--text-faint); font-weight:700; margin-bottom:12px;}
+
+footer.app-footer{
+  text-align:center; color:var(--text-faint); font-size:12px; margin-top:40px;
+}
+
+/* Contenedor oculto para exportación a PDF
+   Nota: se usa position:absolute + opacity casi 0 (en vez de left:-99999px)
+   porque desplazar el nodo muy lejos del viewport hace que html2canvas
+   capture un lienzo en blanco. Así el elemento sigue teniendo layout real. */
+#pdfExport{
+  position:absolute; top:0; left:0; width:780px; background:#ffffff; color:#1c1c1c;
+  z-index:-9999; opacity:0.02; pointer-events:none;
+}
+
+@media (max-width:560px){
+  .card{padding:18px;}
+  .button-row .btn{flex:1; justify-content:center;}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="app-header">
+    <div class="title-block">
+      <p class="eyebrow">Sistema Financiero · Amortización Francesa</p>
+      <h1>Calculadora Profesional de Préstamos</h1>
+      <p class="subtitle">Sistema Francés de Amortización</p>
+    </div>
+    <div class="header-actions">
+      <span class="datetime-chip" id="clockChip">--</span>
+    </div>
+  </header>
+
+  <!--  FORMULARIO  -->
+  <section class="card">
+    <h2><span class="num">01</span> Datos del préstamo</h2>
+    <div class="grid-form">
+      <div class="field money">
+        <label>Monto del préstamo</label>
+        <input type="number" id="monto" placeholder="Ej. 150000" min="0" step="0.01">
+      </div>
+      <div class="field">
+        <label>Tasa mensual (%) <span class="hint">nominal</span></label>
+        <input type="number" id="tasa" placeholder="Ej. 2.5" step="0.01">
+      </div>
+      <div class="field">
+        <label>Frecuencia de pago</label>
+        <select id="frecuencia">
+          <option value="diaria">Diaria</option>
+          <option value="semanal">Semanal</option>
+          <option value="quincenal">Quincenal</option>
+          <option value="mensual" selected>Mensual</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Fecha inicio</label>
+        <input type="date" id="fechaInicio">
+      </div>
+      <div class="field">
+        <label id="plazoLabel">Plazo (Meses)</label>
+        <input type="number" id="plazo" min="1" step="1" placeholder="Ej. 12">
+      </div>
+      <div class="field">
+        <label>Fecha final <span class="hint">auto o manual</span></label>
+        <input type="date" id="fechaFinal">
+      </div>
+    </div>
+
+    <div class="error-box" id="errorBox">⚠️ <span id="errorText"></span></div>
+
+    <div class="button-row">
+      <button class="btn btn-primary" id="btnCalcular" type="button">🧮 Calcular</button>
+      <button class="btn btn-danger" id="btnLimpiar" type="button">🗑️ Limpiar</button>
+      <button class="btn btn-success" id="btnPdf" type="button" disabled>📄 Exportar PDF</button>
+    </div>
+  </section>
+
+  <!--  RESULTADOS  -->
+  <section class="card" id="resultsSection">
+    <h2><span class="num">02</span> Resumen financiero</h2>
+
+    <div class="kpi-grid">
+      <div class="kpi stub">
+        <div class="k-label">Cuota por período</div>
+        <div class="k-value" id="kCuota">RD$ 0.00</div>
+      </div>
+      <div class="kpi">
+        <div class="k-label">Total pagado</div>
+        <div class="k-value azul" id="kTotalPagado">RD$ 0.00</div>
+      </div>
+      <div class="kpi">
+        <div class="k-label">Intereses generados</div>
+        <div class="k-value rose" id="kIntereses">RD$ 0.00</div>
+      </div>
+      <div class="kpi">
+        <div class="k-label">Capital</div>
+        <div class="k-value emerald" id="kCapital">RD$ 0.00</div>
+      </div>
+    </div>
+
+    <div class="meta-strip">
+      <div class="m-item">Cantidad de cuotas: <b id="mCuotas">0</b></div>
+      <div class="m-item">Frecuencia: <b id="mFrecuencia">—</b></div>
+      <div class="m-item">Tasa equivalente aplicada: <b id="mTasaEq">0%</b></div>
+    </div>
+  </section>
+
+  <!--  TABLA DE AMORTIZACIÓN  -->
+  <section class="card" id="tableSection" style="display:none;">
+    <h2><span class="num">03</span> Tabla de amortización</h2>
+    <div class="table-scroll">
+      <table class="amort" id="amortTable">
+        <thead>
+          <tr>
+            <th>#</th><th>Fecha</th><th>Cuota</th><th>Interés</th><th>Capital</th><th>Balance</th>
+          </tr>
+        </thead>
+        <tbody id="amortBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer class="app-footer">
+    Generado con Calculadora Profesional de Préstamos — Vision Metrics
+  </footer>
+</div>
+
+<!--CONTENEDOR OCULTO PARA PDF  -->
+<div id="pdfExport"></div>
+
+<script>
+/* 
+   ESTADO GLOBAL
+    */
+let ultimoCalculo = null;   // guarda los resultados del último cálculo para el PDF
+let isSyncing = false;      // evita loops entre plazo <-> fechaFinal
+
+/* 
+   UTILIDADES
+    */
+const fmtDOP = new Intl.NumberFormat('es-DO', { style: 'currency', currency: 'DOP' });
+const fmtFecha = (d) => d.toLocaleDateString('es-DO', { day: '2-digit', month: 'short', year: 'numeric' });
+
+function toISODate(d){
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+function parseISODate(str){
+  // evita desfases de zona horaria al parsear "YYYY-MM-DD"
+  const [y,m,d] = str.split('-').map(Number);
+  return new Date(y, m-1, d);
+}
+
+/* Suma "count" períodos de la frecuencia dada a una fecha */
+function sumarPeriodo(fecha, freq, count){
+  const d = new Date(fecha.getTime());
+  switch(freq){
+    case 'diaria':    d.setDate(d.getDate() + count); break;
+    case 'semanal':   d.setDate(d.getDate() + count*7); break;
+    case 'quincenal': d.setDate(d.getDate() + count*15); break;
+    case 'mensual':   d.setMonth(d.getMonth() + count); break;
+  }
+  return d;
+}
+
+/* Calcula la cantidad de períodos completos entre dos fechas según frecuencia */
+function contarPeriodos(inicio, fin, freq){
+  const msPorDia = 86400000;
+  const dias = Math.round((fin - inicio) / msPorDia);
+  if (dias <= 0) return 0;
+  switch(freq){
+    case 'diaria':    return dias;
+    case 'semanal':   return Math.round(dias/7);
+    case 'quincenal': return Math.round(dias/15);
+    case 'mensual': {
+      let meses = (fin.getFullYear()-inicio.getFullYear())*12 + (fin.getMonth()-inicio.getMonth());
+      if (fin.getDate() < inicio.getDate()) meses -= 1;
+      return Math.max(meses,0);
+    }
+  }
+}
+
+/* Convierte la tasa mensual (decimal) a la tasa equivalente de la frecuencia elegida */
+function tasaEquivalente(tasaMensualDecimal, freq){
+  switch(freq){
+    case 'diaria':    return Math.pow(1+tasaMensualDecimal, 1/30) - 1;
+    case 'semanal':   return Math.pow(1+tasaMensualDecimal, 7/30) - 1;
+    case 'quincenal': return Math.pow(1+tasaMensualDecimal, 15/30) - 1;
+    case 'mensual':   return tasaMensualDecimal;
+  }
+}
+
+/* Cuota fija del Sistema Francés */
+function calcularCuotaFija(monto, i, n){
+  if (i === 0) return monto / n;
+  return monto * i / (1 - Math.pow(1+i, -n));
+}
+
+const labelPlazo = {
+  diaria: 'Plazo (Días)',
+  semanal: 'Plazo (Semanas)',
+  quincenal: 'Plazo (Quincenas)',
+  mensual: 'Plazo (Meses)'
+};
+const nombreFrecuencia = {
+  diaria: 'Diaria', semanal: 'Semanal', quincenal: 'Quincenal', mensual: 'Mensual'
+};
+
+/* 
+   REFERENCIAS DOM
+    */
+const el = (id) => document.getElementById(id);
+const inpMonto = el('monto');
+const inpTasa = el('tasa');
+const selFrecuencia = el('frecuencia');
+const inpFechaInicio = el('fechaInicio');
+const inpFechaFinal = el('fechaFinal');
+const inpPlazo = el('plazo');
+const lblPlazo = el('plazoLabel');
+const errorBox = el('errorBox');
+const errorText = el('errorText');
+
+/* 
+   INICIALIZACIÓN
+    */
+function init(){
+  const hoy = new Date();
+  inpFechaInicio.value = toISODate(hoy);
+  actualizarLabelPlazo();
+  actualizarReloj();
+  setInterval(actualizarReloj, 1000);
+}
+
+function actualizarReloj(){
+  const ahora = new Date();
+  el('clockChip').textContent = ahora.toLocaleString('es-DO', {
+    day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'
+  });
+}
+
+function actualizarLabelPlazo(){
+  lblPlazo.textContent = labelPlazo[selFrecuencia.value];
+}
+
+/* 
+   SINCRONIZACIÓN BIDIRECCIONAL PLAZO <-> FECHA FINAL
+    */
+function recalcularFechaFinalDesdePlazo(){
+  if (isSyncing) return;
+  const plazo = parseInt(inpPlazo.value, 10);
+  if (!inpFechaInicio.value || !plazo || plazo <= 0) return;
+  isSyncing = true;
+  const inicio = parseISODate(inpFechaInicio.value);
+  const final = sumarPeriodo(inicio, selFrecuencia.value, plazo);
+  inpFechaFinal.value = toISODate(final);
+  isSyncing = false;
+}
+
+function recalcularPlazoDesdeFechaFinal(){
+  if (isSyncing) return;
+  if (!inpFechaInicio.value || !inpFechaFinal.value) return;
+  isSyncing = true;
+  const inicio = parseISODate(inpFechaInicio.value);
+  const final = parseISODate(inpFechaFinal.value);
+  const periodos = contarPeriodos(inicio, final, selFrecuencia.value);
+  inpPlazo.value = periodos > 0 ? periodos : '';
+  isSyncing = false;
+}
+
+inpPlazo.addEventListener('input', recalcularFechaFinalDesdePlazo);
+inpFechaFinal.addEventListener('change', recalcularPlazoDesdeFechaFinal);
+inpFechaInicio.addEventListener('change', () => {
+  // al mover la fecha de inicio, se conserva el plazo y se recalcula la fecha final
+  recalcularFechaFinalDesdePlazo();
+});
+selFrecuencia.addEventListener('change', () => {
+  actualizarLabelPlazo();
+  recalcularFechaFinalDesdePlazo();
+});
+
+/* 
+   VALIDACIÓN
+    */
+function mostrarError(msg){
+  errorText.textContent = msg;
+  errorBox.classList.add('show');
+}
+function ocultarError(){
+  errorBox.classList.remove('show');
+}
+
+function validarFormulario(monto, tasaPct, plazo, inicio, final){
+  if (!monto || monto <= 0) return 'El monto del préstamo debe ser mayor que cero.';
+  if (isNaN(tasaPct) || tasaPct < 0) return 'La tasa mensual no puede ser negativa.';
+  if (!plazo || plazo <= 0) return 'El plazo debe ser mayor que cero.';
+  if (!inicio || !final) return 'Debes indicar la fecha de inicio y la fecha final.';
+  if (final < inicio) return 'La fecha final no puede ser anterior a la fecha de inicio.';
+  return null;
+}
+
+/* 
+   CÁLCULO PRINCIPAL
+    */
+el('btnCalcular').addEventListener('click', calcular);
+
+function calcular(){
+  ocultarError();
+
+  const monto = parseFloat(inpMonto.value);
+  const tasaPct = parseFloat(inpTasa.value);
+  const freq = selFrecuencia.value;
+  const plazo = parseInt(inpPlazo.value, 10);
+  const inicio = inpFechaInicio.value ? parseISODate(inpFechaInicio.value) : null;
+  const final = inpFechaFinal.value ? parseISODate(inpFechaFinal.value) : null;
+
+  const errorMsg = validarFormulario(monto, tasaPct, plazo, inicio, final);
+  if (errorMsg){
+    mostrarError(errorMsg);
+    el('resultsSection').classList.remove('show');
+    el('tableSection').style.display = 'none';
+    el('btnPdf').disabled = true;
+    return;
+  }
+
+  const tasaMensualDec = tasaPct / 100;
+  const i = tasaEquivalente(tasaMensualDec, freq);
+  const n = plazo;
+  const cuota = calcularCuotaFija(monto, i, n);
+
+  // construir tabla de amortización
+  let balance = monto;
+  const filas = [];
+  for (let k = 1; k <= n; k++){
+    const interes = balance * i;
+    let capitalPagado = cuota - interes;
+    let cuotaFila = cuota;
+    let nuevoBalance = balance - capitalPagado;
+
+    if (k === n){
+      // corregir errores de redondeo: el balance final debe cerrar exactamente en cero
+      capitalPagado = balance;
+      cuotaFila = capitalPagado + interes;
+      nuevoBalance = 0;
+    }
+
+    const fechaFila = sumarPeriodo(inicio, freq, k);
+    filas.push({
+      numero: k,
+      fecha: fechaFila,
+      cuota: cuotaFila,
+      interes: interes,
+      capital: capitalPagado,
+      balance: nuevoBalance
+    });
+    balance = nuevoBalance;
+  }
+
+  const totalPagado = filas.reduce((s,f) => s + f.cuota, 0);
+  const totalIntereses = filas.reduce((s,f) => s + f.interes, 0);
+
+  // pintar resultados
+  el('kCuota').textContent = fmtDOP.format(cuota);
+  el('kTotalPagado').textContent = fmtDOP.format(totalPagado);
+  el('kIntereses').textContent = fmtDOP.format(totalIntereses);
+  el('kCapital').textContent = fmtDOP.format(monto);
+  el('mCuotas').textContent = n;
+  el('mFrecuencia').textContent = nombreFrecuencia[freq];
+  el('mTasaEq').textContent = (i*100).toFixed(4) + '%';
+
+  el('resultsSection').classList.add('show');
+
+  // pintar tabla
+  const tbody = el('amortBody');
+  tbody.innerHTML = '';
+  for (const f of filas){
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${f.numero}</td>
+      <td>${fmtFecha(f.fecha)}</td>
+      <td>${fmtDOP.format(f.cuota)}</td>
+      <td>${fmtDOP.format(f.interes)}</td>
+      <td>${fmtDOP.format(f.capital)}</td>
+      <td>${fmtDOP.format(f.balance)}</td>
+    `;
+    tbody.appendChild(tr);
+  }
+  el('tableSection').style.display = 'block';
+  el('btnPdf').disabled = false;
+
+  ultimoCalculo = {
+    monto, tasaPct, freq, n, i, cuota, totalPagado, totalIntereses, filas,
+    inicio, final: filas.length ? filas[filas.length-1].fecha : final
+  };
+}
+
+/* 
+   LIMPIAR
+    */
+el('btnLimpiar').addEventListener('click', () => {
+  inpMonto.value = '';
+  inpTasa.value = '';
+  selFrecuencia.value = 'mensual';
+  inpPlazo.value = '';
+  const hoy = new Date();
+  inpFechaInicio.value = toISODate(hoy);
+  inpFechaFinal.value = '';
+  actualizarLabelPlazo();
+  ocultarError();
+  el('resultsSection').classList.remove('show');
+  el('tableSection').style.display = 'none';
+  el('btnPdf').disabled = true;
+  ultimoCalculo = null;
+});
+
+/* 
+   EXPORTAR PDF
+    */
+el('btnPdf').addEventListener('click', exportarPDF);
+
+function exportarPDF(){
+  if (!ultimoCalculo) return;
+  const c = ultimoCalculo;
+  const ahora = new Date();
+
+  let filasHtml = '';
+  for (const f of c.filas){
+    filasHtml += `
+      <tr>
+        <td style="padding:6px 10px; border-bottom:1px solid #e7e2d6;">${f.numero}</td>
+        <td style="padding:6px 10px; border-bottom:1px solid #e7e2d6;">${fmtFecha(f.fecha)}</td>
+        <td style="padding:6px 10px; border-bottom:1px solid #e7e2d6; text-align:right;">${fmtDOP.format(f.cuota)}</td>
+        <td style="padding:6px 10px; border-bottom:1px solid #e7e2d6; text-align:right;">${fmtDOP.format(f.interes)}</td>
+        <td style="padding:6px 10px; border-bottom:1px solid #e7e2d6; text-align:right;">${fmtDOP.format(f.capital)}</td>
+        <td style="padding:6px 10px; border-bottom:1px solid #e7e2d6; text-align:right;">${fmtDOP.format(f.balance)}</td>
+      </tr>`;
+  }
+
+  el('pdfExport').innerHTML = `
+    <div style="font-family: Georgia, serif; padding:36px; color:#26241D;">
+      <div style="border-bottom:2px solid #A9782E; padding-bottom:14px; margin-bottom:22px;">
+        <div style="font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:#A9782E; font-weight:700;">Sistema Financiero · Amortización Francesa</div>
+        <div style="font-size:26px; font-weight:700; margin-top:4px;">Calculadora Profesional de Préstamos</div>
+        <div style="font-size:13px; font-style:italic; color:#635C4C; margin-top:2px;">Sistema Francés de Amortización</div>
+      </div>
+
+      <div style="font-size:12px; color:#635C4C; margin-bottom:18px; font-family: -apple-system, sans-serif;">
+        Fecha de generación: ${ahora.toLocaleString('es-DO', {day:'2-digit',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'})}
+      </div>
+
+      <div style="font-size:14px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:#26241D; margin-bottom:10px; font-family:-apple-system, sans-serif;">Resumen financiero</div>
+      <table style="width:100%; border-collapse:collapse; margin-bottom:22px; font-family:-apple-system, sans-serif; font-size:13px;">
+        <tr>
+          <td style="padding:8px 0; color:#635C4C;">Monto del préstamo</td>
+          <td style="padding:8px 0; text-align:right; font-weight:700;">${fmtDOP.format(c.monto)}</td>
+        </tr>
+        <tr>
+          <td style="padding:8px 0; color:#635C4C;">Tasa mensual nominal</td>
+          <td style="padding:8px 0; text-align:right; font-weight:700;">${c.tasaPct}%</td>
+        </tr>
+        <tr>
+          <td style="padding:8px 0; color:#635C4C;">Frecuencia</td>
+          <td style="padding:8px 0; text-align:right; font-weight:700;">${nombreFrecuencia[c.freq]}</td>
+        </tr>
+        <tr>
+          <td style="padding:8px 0; color:#635C4C;">Tasa equivalente aplicada</td>
+          <td style="padding:8px 0; text-align:right; font-weight:700;">${(c.i*100).toFixed(4)}%</td>
+        </tr>
+        <tr>
+          <td style="padding:8px 0; color:#635C4C;">Cantidad de cuotas</td>
+          <td style="padding:8px 0; text-align:right; font-weight:700;">${c.n}</td>
+        </tr>
+        <tr>
+          <td style="padding:8px 0; color:#635C4C;">Cuota por período</td>
+          <td style="padding:8px 0; text-align:right; font-weight:700; color:#A9782E;">${fmtDOP.format(c.cuota)}</td>
+        </tr>
+        <tr>
+          <td style="padding:8px 0; color:#635C4C;">Total pagado</td>
+          <td style="padding:8px 0; text-align:right; font-weight:700;">${fmtDOP.format(c.totalPagado)}</td>
+        </tr>
+        <tr>
+          <td style="padding:8px 0; color:#635C4C;">Intereses generados</td>
+          <td style="padding:8px 0; text-align:right; font-weight:700; color:#B94A41;">${fmtDOP.format(c.totalIntereses)}</td>
+        </tr>
+      </table>
+
+      <div style="font-size:14px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:#26241D; margin-bottom:10px; font-family:-apple-system, sans-serif;">Tabla de amortización</div>
+      <table style="width:100%; border-collapse:collapse; font-family:-apple-system, sans-serif; font-size:11.5px;">
+        <thead>
+          <tr style="background:#F7F5EF;">
+            <th style="padding:8px 10px; text-align:left;">#</th>
+            <th style="padding:8px 10px; text-align:left;">Fecha</th>
+            <th style="padding:8px 10px; text-align:right;">Cuota</th>
+            <th style="padding:8px 10px; text-align:right;">Interés</th>
+            <th style="padding:8px 10px; text-align:right;">Capital</th>
+            <th style="padding:8px 10px; text-align:right;">Balance</th>
+          </tr>
+        </thead>
+        <tbody>${filasHtml}</tbody>
+      </table>
+    </div>
+  `;
+
+  const opciones = {
+    margin: [10,10,10,10],
+    filename: `Calculadora_Prestamos_${toISODate(ahora)}.pdf`,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: '#ffffff',
+      windowWidth: 780,
+      scrollX: 0,
+      scrollY: 0
+    },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+    pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+  };
+
+  const btnPdf = el('btnPdf');
+  const textoOriginal = btnPdf.textContent;
+  btnPdf.disabled = true;
+  btnPdf.textContent = '⏳ Generando PDF...';
+
+  // Pequeña espera para asegurar que el navegador terminó de pintar
+  // el contenido recién inyectado en #pdfExport antes de capturarlo.
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      html2pdf().set(opciones).from(el('pdfExport')).save()
+        .then(() => {
+          btnPdf.disabled = false;
+          btnPdf.textContent = textoOriginal;
+        })
+        .catch((err) => {
+          console.error('Error al generar el PDF:', err);
+          btnPdf.disabled = false;
+          btnPdf.textContent = textoOriginal;
+          mostrarError('Ocurrió un problema al generar el PDF. Intenta de nuevo.');
+        });
+    });
+  });
+}
+
+init();
+</script>
+</body>
+</html>
